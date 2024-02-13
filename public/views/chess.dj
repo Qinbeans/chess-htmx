@@ -1,0 +1,51 @@
+{% extends 'base-ws.dj' %}
+{% block content %}
+<div class="grid h-dvh place-content-center">
+    <form id="board" hx-trigger="end" class='h-[40dvw] w-[40dvw] grid grid-cols-8 grid-rows-8 border border-solid border-white'>
+        {% for square in squares %}
+            {% comment %} Check if square.Piece is an empty string {% endcomment %}
+            {% if square.Piece %}
+                <div class="bg-{{ square.Color }}">
+                    <input type="hidden" name="square" value="{{ forloop.Counter }}"/>
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/{{ square.Piece }}" class="w-[5dvw] h-[5dvw]">
+                </div>
+            {% else %}
+                <div class="unswappable w-[5dvw] h-[5dvw] bg-{{ square.Color }}">
+                    <input type="hidden" name="square" value="{{ forloop.Counter }}" disabled/>
+                </div>
+            {% endif %}
+        {% endfor %}
+    </form>
+</div>
+<script>
+    htmx.onLoad(function(ctt) {
+        const boards = ctt.querySelectorAll('#board');
+        for (let i = 0; i < boards.length; i++) {
+            const board = boards[i];
+            const squareInstance = new Sortable(board, {
+                animation: 150,
+                swap: true,
+                swapClass: 'bg-black',
+                filter: '.unswappable',
+                onEnd: function (evt) {
+                    source = evt.item;
+                    target = evt.swapItem;
+                    //get bg colors from both, should be in class
+                    src_end = source.classList.length - 1;
+                    trg_end = target.classList.length - 1;
+                    src_bg = source.classList[src_end];
+                    trg_bg = target.classList[trg_end];
+                    //swap bg colors
+                    source.classList.remove(src_bg);
+                    source.classList.add(trg_bg);
+                    target.classList.remove(trg_bg);
+                    target.classList.add(src_bg);
+                }
+            });
+            board.addEventListener('htmx:afterSwap', function (event) {
+                squareInstance.option("disabled", false);
+            });
+        }
+    });
+</script>
+{% endblock %}

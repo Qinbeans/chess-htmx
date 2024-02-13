@@ -1,0 +1,27 @@
+{% extends 'base.dj' %}
+{% block content %}
+    <div class="grid place-content-center gap-2 h-[95%]">
+        <button class="bg-white/25 py-1 px-2 rounded-md hover:bg-white/15" hx-post="/getroom">Get Room</button>
+        <form id="froom" hx-post="/joinroom">
+            <input type="text" name="room" id="iroomid" placeholder="Room ID" class="bg-white/25 py-1 px-2 rounded-md hover:bg-white/15" required>
+            <input type="submit" name="join" value="Join Room" class="bg-white/25 py-1 px-2 rounded-md hover:bg-white/15"/>
+        </form>
+    </div>
+    <script>
+        // After posting to joinroom
+        htmx.on('htmx:afterRequest', function (event) {
+            console.log(event.detail.xhr.response);
+            const response = JSON.parse(event.detail.xhr.response);
+            const input = document.getElementById('iroomid');
+            if (input) {
+                input.value = '';
+            }
+            if (response.error) {
+                alert(response.error);
+                return;
+            }
+            alert('Joined room');
+            window.location.href = `/room?room=${response.room}&user=${response.id}`;
+        });
+    </script>
+{% endblock %}

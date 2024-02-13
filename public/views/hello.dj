@@ -1,0 +1,6 @@
+{% extends "base.dj" %}
+{% block content %}
+<div class="bg-black text-white w-dvw h-dvh">
+    {{body}}
+</div>
+{% endblock %}

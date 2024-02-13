@@ -1,0 +1,48 @@
+{% extends "base-ws.dj" %}
+{% block content %}
+<div class="flex flex-col h-[95%]">
+    <ul class="h-[90%] grid-cols-1 grid-rows-12 place-items-end" id="mhistory">
+    </ul>
+    <div class="h-[10%] grid place-content-center" id="textbar" hx-ext="ws" ws-connect="/room/ws?user={{client}}&room={{room}}" hidden>
+        <form id="chatf" ws-send class="w-dvw px-2 py-1">
+            <input class="bg-white/15 w-[93dvw] py-1 px-2 rounded-md text-green-500" type="text" id="chatm" name="chatm" placeholder="Type your message here" required autocomplete="off">
+            <input class="w-[5dvw] bg-white/25 py-1 px-2 rounded-md hover:bg-white/15" type="submit" value="Send">
+        </form>
+    </div>
+</div>
+<script>
+    const mhistory = htmx.find('#mhistory');
+    const textbar = htmx.find('#textbar');
+    htmx.on("htmx:wsConnecting", function(evt) {
+        window.location.href = '/menu';
+    });
+    htmx.on('htmx:wsOpen', function(evt) {
+        console.log("Connected!");
+        alert("Room is {{room}}")
+        mhistory.removeChild(mhistory.lastChild);
+        textbar.hidden = false;
+    });
+    htmx.on('htmx:wsBeforeSend', function(evt) {
+        const li = document.createElement('li');
+        const chat = htmx.find('#chatm');
+    //  Me: <message>
+        li.innerHTML = `<div class="px-2 py-1 text-green-500">[me]: ${chat.value}</div>`;
+        mhistory.append(li);
+        chat.value = '';
+    });
+    htmx.on('htmx:wsClose', function(evt) {
+        window.location.href = '/menu';
+    });
+    htmx.on('htmx:wsError', function(evt) {
+        window.location.href = '/menu';
+    });
+    htmx.on('htmx:wsAfterMessage', function(evt) {
+    //    Insert into messages
+        const msg = JSON.parse(evt.detail.message);
+        var li = document.createElement('li');
+    //    <user>: <message>
+        li.innerHTML = `<div class="px-2 py-1 text-green-500">[${msg.author}]: ${msg.content}</div>`;
+        mhistory.append(li);
+    });
+</script>
+{% endblock %}
