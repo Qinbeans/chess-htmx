@@ -8,7 +8,7 @@
     </head>
     <body class="bg-black w-dvw h-dvh text-white">
     <div class="h-[5%] bg-white/15 w-full flex justify-center items-center">
-        <a href="/menu" class="text-green-500 px-2 py-1 bg-black/5 hover:bg-black/15">Menu</a>
+        <a href="/" class="text-green-500 px-2 py-1 bg-black/5 hover:bg-black/15">Menu</a>
     </div>
     {% block content%}
     {% endblock %}

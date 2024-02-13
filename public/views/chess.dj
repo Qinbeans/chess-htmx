@@ -2,22 +2,37 @@
 {% block content %}
 <div class="grid h-dvh place-content-center">
     <form id="board" hx-trigger="end" class='h-[40dvw] w-[40dvw] grid grid-cols-8 grid-rows-8 border border-solid border-white'>
-        {% for square in squares %}
+        {% for square in board %}
             {% comment %} Check if square.Piece is an empty string {% endcomment %}
             {% if square.Piece %}
                 <div class="bg-{{ square.Color }}">
-                    <input type="hidden" name="square" value="{{ forloop.Counter }}"/>
+                    <input type="hidden" name="square" value="{{ forloop.Counter0 }}"/>
                     <img src="https://upload.wikimedia.org/wikipedia/commons/{{ square.Piece }}" class="w-[5dvw] h-[5dvw]">
                 </div>
             {% else %}
                 <div class="unswappable w-[5dvw] h-[5dvw] bg-{{ square.Color }}">
-                    <input type="hidden" name="square" value="{{ forloop.Counter }}" disabled/>
+                    <input type="hidden" name="square" value="{{ forloop.Counter0 }}" disabled/>
                 </div>
             {% endif %}
         {% endfor %}
     </form>
 </div>
 <script>
+    function swapElements(obj1, obj2) {
+        // create marker element and insert it where obj1 is
+        var temp = document.createElement("div");
+        obj1.parentNode.insertBefore(temp, obj1);
+    
+        // move obj1 to right before obj2
+        obj2.parentNode.insertBefore(obj1, obj2);
+    
+        // move obj2 to right before where obj1 used to be
+        temp.parentNode.insertBefore(obj2, temp);
+    
+        // remove temporary marker node
+        temp.parentNode.removeChild(temp);
+    }
+
     htmx.onLoad(function(ctt) {
         const boards = ctt.querySelectorAll('#board');
         for (let i = 0; i < boards.length; i++) {
@@ -28,8 +43,11 @@
                 swapClass: 'bg-black',
                 filter: '.unswappable',
                 onEnd: function (evt) {
+                    console.log(evt);
                     source = evt.item;
                     target = evt.swapItem;
+                    src_pos = evt.oldIndex;
+                    trg_pos = evt.newIndex;
                     //get bg colors from both, should be in class
                     src_end = source.classList.length - 1;
                     trg_end = target.classList.length - 1;
@@ -40,6 +58,31 @@
                     source.classList.add(trg_bg);
                     target.classList.remove(trg_bg);
                     target.classList.add(src_bg);
+                    // send POST request to /chess/move
+                    fetch('/chess/move', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            src_pos: src_pos,
+                            trg_pos: trg_pos,
+                            room: '{{ room }}',
+                            client: '{{ client }}',
+                        }),
+                    }).then(response => response.json())
+                    .then(data => {
+                        const message = data['message'];
+                        if (message !== 'ok') {
+                            // swap the 2 squares back
+                            source.classList.remove(trg_bg);
+                            source.classList.add(src_bg);
+                            target.classList.remove(src_bg);
+                            target.classList.add(trg_bg);
+                            // swap the 2 elements back
+                            swapElements(board.children[src_pos], board.children[trg_pos]);
+                        }
+                    })
                 }
             });
             board.addEventListener('htmx:afterSwap', function (event) {

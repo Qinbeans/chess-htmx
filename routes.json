@@ -1,0 +1,52 @@
+[
+  {
+    "method": "GET",
+    "path": "/room",
+    "name": "main.room"
+  },
+  {
+    "method": "GET",
+    "path": "/room/ws",
+    "name": "github.com/Qinbeans/chess/websockets.(*WSServer).WSHandler-fm"
+  },
+  {
+    "method": "GET",
+    "path": "/*",
+    "name": "github.com/labstack/echo/v4.StaticDirectoryHandler.func1"
+  },
+  {
+    "method": "POST",
+    "path": "/joinroom",
+    "name": "github.com/Qinbeans/chess/websockets.(*WSServer).ConnectToRoom-fm"
+  },
+  {
+    "method": "GET",
+    "path": "/",
+    "name": "main.menu"
+  },
+  {
+    "method": "POST",
+    "path": "/chess/new",
+    "name": "github.com/Qinbeans/chess/pieces.(*Games).NewGame-fm"
+  },
+  {
+    "method": "POST",
+    "path": "/chess/join",
+    "name": "github.com/Qinbeans/chess/pieces.(*Games).ConnectToRoom-fm"
+  },
+  {
+    "method": "POST",
+    "path": "/chess/move",
+    "name": "github.com/Qinbeans/chess/pieces.(*Games).MovePiece-fm"
+  },
+  {
+    "method": "GET",
+    "path": "/chess",
+    "name": "github.com/Qinbeans/chess/pieces.(*Games).Room-fm"
+  },
+  {
+    "method": "POST",
+    "path": "/getroom",
+    "name": "github.com/Qinbeans/chess/websockets.(*WSServer).GetRoom-fm"
+  }
+]

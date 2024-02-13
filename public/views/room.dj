@@ -14,7 +14,7 @@
     const mhistory = htmx.find('#mhistory');
     const textbar = htmx.find('#textbar');
     htmx.on("htmx:wsConnecting", function(evt) {
-        window.location.href = '/menu';
+        window.location.href = '/';
     });
     htmx.on('htmx:wsOpen', function(evt) {
         console.log("Connected!");
@@ -31,10 +31,10 @@
         chat.value = '';
     });
     htmx.on('htmx:wsClose', function(evt) {
-        window.location.href = '/menu';
+        window.location.href = '/';
     });
     htmx.on('htmx:wsError', function(evt) {
-        window.location.href = '/menu';
+        window.location.href = '/';
     });
     htmx.on('htmx:wsAfterMessage', function(evt) {
     //    Insert into messages

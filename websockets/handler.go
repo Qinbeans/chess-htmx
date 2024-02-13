@@ -225,6 +225,7 @@ func (ws *WSServer) GetRoom(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{
 		"room": room.String(),
 		"id":   id.String(),
+		"type": "chat",
 	})
 }
 
@@ -243,5 +244,6 @@ func (ws *WSServer) ConnectToRoom(c echo.Context) error {
 	return c.JSON(http.StatusOK, map[string]string{
 		"room": room,
 		"id":   id.String(),
+		"type": "chat",
 	})
 }

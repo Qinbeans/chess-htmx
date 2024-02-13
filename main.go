@@ -1,6 +1,9 @@
 package main
 
 import (
+	"encoding/json"
+	"os"
+
 	"github.com/Qinbeans/chess/pieces"
 	"github.com/Qinbeans/chess/template"
 	"github.com/Qinbeans/chess/websockets"
@@ -37,14 +40,22 @@ func main() {
 	ws := websockets.NewWSServer()
 	defer ws.Close()
 	chess := pieces.NewGames()
-	// Middleware is a function that takes a handler and returns a handler
-	// server.Use(ws.Middleware)
+	// Chat
 	server.Static("/", "build")
 	server.POST("/getroom", ws.GetRoom)
 	server.POST("/joinroom", ws.ConnectToRoom)
-	server.GET("/menu", menu)
+	server.GET("/", menu)
 	server.GET("/room", room)
 	server.GET("/room/ws", ws.WSHandler)
-	server.GET("/newgame", chess.NewGame)
+	// Chess
+	server.POST("/chess/new", chess.NewGame)
+	server.POST("/chess/join", chess.ConnectToRoom)
+	server.POST("/chess/move", chess.MovePiece) // Replace this in the future with websockets
+	server.GET("/chess", chess.Room)
+	data, err := json.MarshalIndent(server.Routes(), "", "  ")
+	if err != nil {
+		server.Logger.Fatal(err)
+	}
+	os.WriteFile("routes.json", data, 0644)
 	server.Logger.Fatal(server.Start(":8090"))
 }
