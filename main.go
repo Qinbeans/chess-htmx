@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"os"
 
-	"github.com/Qinbeans/chess/pieces"
-	"github.com/Qinbeans/chess/template"
-	"github.com/Qinbeans/chess/websockets"
+	"github.com/Qinbeans/chess-htmx/pieces"
+	"github.com/Qinbeans/chess-htmx/template"
+	"github.com/Qinbeans/chess-htmx/websockets"
 	"github.com/flosch/pongo2/v6"
 	"github.com/labstack/echo/v4"
 )

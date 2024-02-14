@@ -8,19 +8,67 @@ There's really no build process aside from building the classes from TailwindCSS
 
 ## One command to rule them all
 
-```
-air
-```
+That's somewhat a lie as `air` is for development--you can install air [here](https://github.com/cosmtrek/air).
 
-You can install air [here](https://github.com/cosmtrek/air).
+Here are the steps to build and deploy:
+- `pnpm build:release`
+- `node dist` or `dist/chess-htmx`.
 
 ## Endpoints
 
-Getting started, these are the endpoints that won't break:
+You can find the endpoints in `routes.json`.
 
+```json
+[
+  {
+    "method": "POST",
+    "path": "/getroom",
+    "name": "github.com/Qinbeans/chess-htmx/websockets.(*WSServer).GetRoom-fm"
+  },
+  {
+    "method": "GET",
+    "path": "/room/ws",
+    "name": "github.com/Qinbeans/chess-htmx/websockets.(*WSServer).WSHandler-fm"
+  },
+  {
+    "method": "POST",
+    "path": "/chess/new",
+    "name": "github.com/Qinbeans/chess-htmx/pieces.(*Server).NewGame-fm"
+  },
+  {
+    "method": "POST",
+    "path": "/chess/join",
+    "name": "github.com/Qinbeans/chess-htmx/pieces.(*Server).ConnectToRoom-fm"
+  },
+  {
+    "method": "GET",
+    "path": "/chess",
+    "name": "github.com/Qinbeans/chess-htmx/pieces.(*Server).Room-fm"
+  },
+  {
+    "method": "GET",
+    "path": "/*",
+    "name": "github.com/labstack/echo/v4.StaticDirectoryHandler.func1"
+  },
+  {
+    "method": "POST",
+    "path": "/joinroom",
+    "name": "github.com/Qinbeans/chess-htmx/websockets.(*WSServer).ConnectToRoom-fm"
+  },
+  {
+    "method": "GET",
+    "path": "/",
+    "name": "main.menu"
+  },
+  {
+    "method": "GET",
+    "path": "/room",
+    "name": "main.room"
+  },
+  {
+    "method": "GET",
+    "path": "/chess/ws",
+    "name": "github.com/Qinbeans/chess-htmx/pieces.(*Server).WSHandler-fm"
+  }
+]
 ```
-/menu
-/newgame
-```
-
-This is a work and progress, so stay tuned!

@@ -1,6 +1,7 @@
 {
 	"scripts": {
-		"build": "postcss styles/app.css -o build/styles/app.css"
+		"build": "postcss styles/app.css -o build/styles/app.css",
+		"build:release": "tsc && postcss styles/app.css -o dist/build/styles/app.css && go build -o dist/chess-htmx"
 	},
 	"dependencies": {
 		"autoprefixer": "^10.4.17",
@@ -8,6 +9,10 @@
 		"htmx.org": "^1.9.10",
 		"postcss": "^8.4.35",
 		"postcss-cli": "^11.0.0",
-		"tailwindcss": "^3.4.1"
+		"tailwindcss": "^3.4.1",
+		"typescript": "^5.3.3"
+	},
+	"devDependencies": {
+		"@types/node": "^20.11.17"
 	}
 }

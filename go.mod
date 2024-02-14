@@ -1,4 +1,4 @@
-module github.com/Qinbeans/chess
+module github.com/Qinbeans/chess-htmx
 
 go 1.20
 

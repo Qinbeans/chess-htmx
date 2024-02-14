@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/Qinbeans/chess/utils"
+	"github.com/Qinbeans/chess-htmx/utils"
 	"github.com/gorilla/websocket"
 )
 

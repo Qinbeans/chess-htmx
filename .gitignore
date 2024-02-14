@@ -3,3 +3,4 @@ dir2str.py
 chess.code-workspace
 node_modules
 build
+dist
