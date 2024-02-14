@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/flosch/pongo2/v6"
-	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
+	"github.com/Qinbeans/chess/utils"
+	"github.com/gorilla/websocket"
 )
 
+// Square is the container for a square on the chess board
 type Square struct {
 	Color string
 	Piece int
 }
 
+// SerSquare is the container for a square on the chess board for serialization
 type SerSquare struct {
 	Color string `json:"color"`
 	Piece string `json:"piece"`
@@ -67,28 +68,28 @@ var (
 	}
 )
 
-type Games struct {
-	Games map[string]*Game
-}
-
-func NewGames() *Games {
-	return &Games{
-		Games: make(map[string]*Game),
-	}
-}
-
+// Game is a struct for a game of chess
+//   - Board: 8x8 array of Squares
+//   - Clients: list of client ids
+//   - Conn: websocket connection
 type Game struct {
-	Board   [8][8]Square
-	Clients []string
+	Board        [8][8]Square
+	Clients      map[string]*websocket.Conn
+	ClientColors map[string]int
+	Turn         int
 }
 
+// Creates a new game of chess
 func NewGame(user1 string) *Game {
 	return &Game{
-		Board:   STARTING_POSITION,
-		Clients: []string{user1},
+		Board:        STARTING_POSITION,
+		Clients:      map[string]*websocket.Conn{user1: nil},
+		ClientColors: map[string]int{user1: WHITE},
+		Turn:         WHITE,
 	}
 }
 
+// toSquareArray converts the board to a 1D array of SerSquares
 func (g *Game) toSquareArray() []SerSquare {
 	var board []SerSquare
 	// if len(g.Clients) < MAX_CLIENTS {
@@ -102,6 +103,7 @@ func (g *Game) toSquareArray() []SerSquare {
 	return board
 }
 
+// movePiece moves a piece from one square to another
 func (g *Game) movePiece(x1, y1, x2, y2 int) error {
 	// Check target square
 	piece := (g.Board[x1][y1].Piece | BLACK) - BLACK
@@ -118,10 +120,7 @@ func (g *Game) movePiece(x1, y1, x2, y2 int) error {
 	return nil
 }
 
-func abs(x int) int {
-	return x &^ (x >> 31)
-}
-
+// checkIsLegalMove checks if a move is legal
 func (g *Game) checkIsLegalMove(x1, y1, x2, y2 int) bool {
 	// get piece
 	log.Printf("<%d, %d> -> <%d, %d> ", x1, y1, x2, y2)
@@ -133,12 +132,12 @@ func (g *Game) checkIsLegalMove(x1, y1, x2, y2 int) bool {
 		color := piece & BLACK
 		if color == WHITE {
 			fmt.Println("WHITE")
-			if (x1 == 1 && x2 == 3 && y1 == y2) || (x1-x2 == -1 && y1 == y2) || (x1-x2 == -1 && abs(y1-y2) == 1 && otherPiece != NONE && otherPiece&BLACK == WHITE) {
+			if (x1 == 1 && x2 == 3 && y1 == y2) || (x1-x2 == -1 && y1 == y2) || (x1-x2 == -1 && utils.Abs(y1-y2) == 1 && otherPiece != NONE && otherPiece&BLACK == WHITE) {
 				return true
 			}
 		} else {
 			fmt.Println("BLACK")
-			if (x1 == 6 && x2 == 4 && y1 == y2) || (x1-x2 == 1 && y1 == y2) || (x1-x2 == 1 && abs(y1-y2) == 1 && otherPiece != NONE && otherPiece&BLACK == WHITE) {
+			if (x1 == 6 && x2 == 4 && y1 == y2) || (x1-x2 == 1 && y1 == y2) || (x1-x2 == 1 && utils.Abs(y1-y2) == 1 && otherPiece != NONE && otherPiece&BLACK == WHITE) {
 				return true
 			}
 		}
@@ -164,22 +163,22 @@ func (g *Game) checkIsLegalMove(x1, y1, x2, y2 int) bool {
 			}
 		case KNIGHT:
 			log.Println("KNIGHT")
-			if (abs(x1-x2) == 2 && abs(y1-y2) == 1) || (abs(x1-x2) == 1 && abs(y1-y2) == 2) {
+			if (utils.Abs(x1-x2) == 2 && utils.Abs(y1-y2) == 1) || (utils.Abs(x1-x2) == 1 && utils.Abs(y1-y2) == 2) {
 				return true
 			}
 		case BISHOP:
 			log.Println("BISHOP")
-			if abs(x1-x2) == abs(y1-y2) {
+			if utils.Abs(x1-x2) == utils.Abs(y1-y2) {
 				return true
 			}
 		case QUEEN:
 			log.Println("QUEEN")
-			if (x1 == x2 && y1 != y2) || (x1 != x2 && y1 == y2) || abs(x1-x2) == abs(y1-y2) {
+			if (x1 == x2 && y1 != y2) || (x1 != x2 && y1 == y2) || utils.Abs(x1-x2) == utils.Abs(y1-y2) {
 				return true
 			}
 		case KING:
 			log.Print("KING ")
-			if abs(x1-x2) <= 1 && abs(y1-y2) <= 1 {
+			if utils.Abs(x1-x2) <= 1 && utils.Abs(y1-y2) <= 1 {
 				return true
 			}
 			// castling check
@@ -200,98 +199,4 @@ func (g *Game) checkIsLegalMove(x1, y1, x2, y2 int) bool {
 		}
 	}
 	return false
-}
-
-func (g *Games) NewGame(c echo.Context) error {
-	room := uuid.New().String()
-	client := uuid.New().String()
-	g.Games[room] = NewGame(client)
-	return c.JSON(200, map[string]string{
-		"room": room,
-		"id":   client,
-		"type": "chess",
-	})
-}
-
-func (g *Games) ConnectToRoom(c echo.Context) error {
-	var room map[string]string
-	err := c.Bind(&room)
-	if err != nil {
-		log.Println(err)
-		return c.JSON(200, map[string]string{
-			"message": "bad request",
-			"type":    "chess",
-		})
-	}
-	room_id := room["room"]
-	client := room["client"]
-	if _, ok := g.Games[room_id]; !ok {
-		return c.JSON(200, map[string]string{
-			"message": "room not found",
-			"type":    "chess",
-		})
-	}
-	if len(g.Games[room_id].Clients) >= MAX_CLIENTS {
-		return c.JSON(200, map[string]string{
-			"message": "room full",
-			"type":    "chess",
-		})
-	}
-	g.Games[room_id].Clients = append(g.Games[room_id].Clients, client)
-	return c.JSON(200, map[string]string{
-		"room": room_id,
-		"id":   client,
-		"type": "chess",
-	})
-}
-
-func (g *Games) Room(c echo.Context) error {
-	params := c.QueryParams()
-	room := params.Get("room")
-	if room == "" {
-		return c.Redirect(302, "/")
-	}
-	client := params.Get("user")
-	if client == "" {
-		return c.Redirect(302, "/")
-	}
-	if _, ok := g.Games[room]; !ok {
-		return c.Redirect(302, "/")
-	}
-	return c.Render(200, "chess.dj", pongo2.Context{
-		"room":   room,
-		"client": client,
-		"board":  g.Games[room].toSquareArray(),
-	})
-}
-
-func (g *Games) MovePiece(c echo.Context) error {
-	var move map[string]interface{}
-	err := c.Bind(&move)
-	if err != nil {
-		log.Println(err)
-		return c.JSON(200, []byte("{\"message\": \"bad request\"}"))
-	}
-	room := move["room"].(string)
-	//client := move["client"].(string)
-	src_pos := int(move["src_pos"].(float64))
-	trg_pos := int(move["trg_pos"].(float64))
-	log.Printf("src_pos: %d, trg_pos: %d\n", src_pos, trg_pos)
-	x1, y1 := src_pos/8, src_pos%8
-	x2, y2 := trg_pos/8, trg_pos%8
-	if _, ok := g.Games[room]; !ok {
-		return c.JSON(200, map[string]string{
-			"message": "room not found",
-		})
-	}
-	err = g.Games[room].movePiece(x1, y1, x2, y2)
-	if err != nil {
-		log.Println(err)
-		return c.JSON(200, map[string]string{
-			"message": "illegal move",
-		})
-	}
-	return c.JSON(200, map[string]string{
-		"message": "ok",
-	})
 }

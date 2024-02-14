@@ -18,6 +18,10 @@
     </form>
 </div>
 <script>
+    const board = htmx.find('#board');
+
+    const ws = new WebSocket(`ws:${window.location.host}/chess/ws?room={{room}}&user={{client}}`);
+
     function swapElements(obj1, obj2) {
         // create marker element and insert it where obj1 is
         var temp = document.createElement("div");
@@ -33,6 +37,56 @@
         temp.parentNode.removeChild(temp);
     }
 
+    ws.onopen = function (event) {
+        console.log('Connection opened');
+    };
+
+    ws.onclose = function (event) {
+        console.log('Connection closed');
+        window.location.href = '/';
+    };
+
+    ws.onerror = function (event) {
+        console.log('Error:', event);
+        window.location.href = '/';
+    };
+
+    ws.onmessage = function (event) {
+        const data = JSON.parse(event.data);
+        if (data.content.type === 'error') {
+            alert(data.content.msg);
+            // Swap back the pieces
+            const trg_pos = data.content.src;
+            const src_pos = data.content.dst;
+            const source = board.querySelector(`input[name="square"][value="${src_pos}"]`).parentNode;
+            const target = board.querySelector(`input[name="square"][value="${trg_pos}"]`).parentNode;
+            const src_end = source.classList.length - 1;
+            const trg_end = target.classList.length - 1;
+            const src_bg = source.classList[src_end];
+            const trg_bg = target.classList[trg_end];
+            source.classList.remove(src_bg);
+            source.classList.add(trg_bg);
+            target.classList.remove(trg_bg);
+            target.classList.add(src_bg);
+            swapElements(source, target);
+        } else if (data.content.type === 'move'){
+            // Swap the pieces
+            const trg_pos = data.content.src;
+            const src_pos = data.content.dst;
+            const source = board.querySelector(`input[name="square"][value="${src_pos}"]`).parentNode;
+            const target = board.querySelector(`input[name="square"][value="${trg_pos}"]`).parentNode;
+            const src_end = source.classList.length - 1;
+            const trg_end = target.classList.length - 1;
+            const src_bg = source.classList[src_end];
+            const trg_bg = target.classList[trg_end];
+            source.classList.remove(src_bg);
+            source.classList.add(trg_bg);
+            target.classList.remove(trg_bg);
+            target.classList.add(src_bg);
+            swapElements(source, target);
+        }
+    };
+
     htmx.onLoad(function(ctt) {
         const boards = ctt.querySelectorAll('#board');
         for (let i = 0; i < boards.length; i++) {
@@ -43,7 +97,6 @@
                 swapClass: 'bg-black',
                 filter: '.unswappable',
                 onEnd: function (evt) {
-                    console.log(evt);
                     source = evt.item;
                     target = evt.swapItem;
                     src_pos = evt.oldIndex;
@@ -58,31 +111,12 @@
                     source.classList.add(trg_bg);
                     target.classList.remove(trg_bg);
                     target.classList.add(src_bg);
-                    // send POST request to /chess/move
-                    fetch('/chess/move', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            src_pos: src_pos,
-                            trg_pos: trg_pos,
-                            room: '{{ room }}',
-                            client: '{{ client }}',
-                        }),
-                    }).then(response => response.json())
-                    .then(data => {
-                        const message = data['message'];
-                        if (message !== 'ok') {
-                            // swap the 2 squares back
-                            source.classList.remove(trg_bg);
-                            source.classList.add(src_bg);
-                            target.classList.remove(src_bg);
-                            target.classList.add(trg_bg);
-                            // swap the 2 elements back
-                            swapElements(board.children[src_pos], board.children[trg_pos]);
-                        }
-                    })
+                    information = JSON.stringify({
+                        'from': src_pos,
+                        'to': trg_pos,
+                        'type': 'move'
+                    });
+                    ws.send(information);
                 }
             });
             board.addEventListener('htmx:afterSwap', function (event) {

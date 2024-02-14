@@ -39,7 +39,7 @@ func main() {
 	// gorilla/websocket middleware
 	ws := websockets.NewWSServer()
 	defer ws.Close()
-	chess := pieces.NewGames()
+	chess := pieces.NewServer()
 	// Chat
 	server.Static("/", "build")
 	server.POST("/getroom", ws.GetRoom)
@@ -50,8 +50,8 @@ func main() {
 	// Chess
 	server.POST("/chess/new", chess.NewGame)
 	server.POST("/chess/join", chess.ConnectToRoom)
-	server.POST("/chess/move", chess.MovePiece) // Replace this in the future with websockets
 	server.GET("/chess", chess.Room)
+	server.GET("/chess/ws", chess.WSHandler)
 	data, err := json.MarshalIndent(server.Routes(), "", "  ")
 	if err != nil {
 		server.Logger.Fatal(err)
