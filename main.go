@@ -50,7 +50,7 @@ func main() {
 	// gorilla/websocket middleware
 	ws := websockets.NewWSServer()
 	defer ws.Close()
-	chess := pieces.NewServer()
+	chess := pieces.NewServer(mode)
 	// Chat
 	server.Static("/", "build")
 	server.POST("/getroom", ws.GetRoom)
