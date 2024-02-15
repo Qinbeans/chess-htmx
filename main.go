@@ -32,6 +32,14 @@ func room(c echo.Context) error {
 }
 
 func main() {
+	mode := os.Getenv("Mode")
+
+	address := ":8090"
+
+	if mode == "release" {
+		address = "0.0.0.0:80"
+	}
+
 	// init Echo
 	server := echo.New()
 	// set renderer to our template
@@ -57,5 +65,5 @@ func main() {
 		server.Logger.Fatal(err)
 	}
 	os.WriteFile("routes.json", data, 0644)
-	server.Logger.Fatal(server.Start(":8090"))
+	server.Logger.Fatal(server.Start(address))
 }

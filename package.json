@@ -1,7 +1,6 @@
 {
 	"scripts": {
-		"build": "postcss styles/app.css -o build/styles/app.css",
-		"build:release": "tsc && postcss styles/app.css -o dist/build/styles/app.css && go build -o dist/chess-htmx"
+		"build": "postcss styles/app.css -o build/styles/app.css"
 	},
 	"dependencies": {
 		"autoprefixer": "^10.4.17",

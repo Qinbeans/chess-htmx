@@ -1,0 +1,8 @@
+build
+dist
+node_modules
+tmp
+chess.code-workspace
+dir2str.py
+LICENSE.txt
+.air.toml
