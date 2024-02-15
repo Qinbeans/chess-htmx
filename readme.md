@@ -1,5 +1,7 @@
 # Chess In Go and HTMX
 
+Can be found [here](https://chess-htmx.onrender.com/)
+
 This is a test on how far I can take my skills as a web developer. I'm quite confident in my abilities with SvelteKit and Go, but I don't really make websites with Go and Javascript alone. I read that HTMX is a wonderful framework for frontend and I believe it's worth a shot.
 
 ## Building
@@ -13,6 +15,10 @@ That's somewhat a lie as `air` is for development--you can install air [here](ht
 Here are the steps to build and deploy:
 - `pnpm build:release`
 - `node dist` or `dist/chess-htmx`.
+
+or
+
+- `docker build -tag chess-htmx && docker run -it chess-htmx`
 
 ## Endpoints
 
