@@ -20,6 +20,8 @@ COPY ./package.json /app/package.json
 COPY ./tailwind.config.js /app/tailwind.config.js
 COPY ./postcss.config.js /app/postcss.config.js
 COPY ./pnpm-lock.yaml /app/pnpm-lock.yaml
+# To check for dj classes
+COPY ./public /app/public
 COPY ./styles /app/styles
 
 RUN npm install -g pnpm
