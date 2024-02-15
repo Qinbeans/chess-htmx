@@ -10,7 +10,6 @@ COPY ./pieces /app/pieces
 COPY ./utils /app/utils
 COPY ./public /app/public
 COPY ./template /app/template
-ENV MODE=release
 # Build the binary.
 RUN go build -tags netgo -ldflags '-s -w' -o app
 
@@ -29,9 +28,10 @@ RUN pnpm build
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates
-USER nobody:n
+USER nobody
 WORKDIR /app
 COPY --from=builder /app/app /app/app
 COPY --from=style_builder /app/build /app/build
+COPY ./public /app/public
 
 CMD [ "./app" ]

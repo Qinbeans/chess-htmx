@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 
 	"github.com/Qinbeans/chess-htmx/pieces"
@@ -35,6 +36,8 @@ func main() {
 	mode := os.Getenv("Mode")
 
 	address := ":8090"
+
+	log.Println(mode)
 
 	if mode == "release" {
 		address = "0.0.0.0:80"
