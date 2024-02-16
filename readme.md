@@ -1,3 +1,5 @@
+[![Build Status](https://github.com/Qinbeans/chess-htmx/actions/workflows/docker-image.yml/badge.svg)](https://github.com/Qinbeans/chess-htmx/actions/workflows/docker-image.yml)
+
 # Chess In Go and HTMX
 
 Can be found [here](https://chess-htmx.onrender.com/)
