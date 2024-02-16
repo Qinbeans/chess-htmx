@@ -20,7 +20,7 @@ Here are the steps to build and deploy:
 
 or
 
-- `docker build -tag chess-htmx && docker run -it chess-htmx`
+- `docker compose up`
 
 ## Endpoints
 
