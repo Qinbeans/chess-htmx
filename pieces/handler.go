@@ -273,10 +273,19 @@ func (g *Server) handleConnection(conn *websocket.Conn, user, room string) {
 			case "quit":
 				log.Println("User quit")
 				return
+			case "acknowledge":
+				log.Println("User acknowledged")
+				ackMsg, _ := json.Marshal(Message{
+					Author: user,
+					Content: map[string]string{
+						"type": "cmd",
+						"msg":  "acknowledge",
+					},
+				})
+				g.Broadcast(user, room, ackMsg)
 			default:
 				log.Println(message["msg"])
 			}
-			return
 		case "move":
 			src_pos := int(message["from"].(float64))
 			dst_pos := int(message["to"].(float64))
@@ -287,10 +296,14 @@ func (g *Server) handleConnection(conn *websocket.Conn, user, room string) {
 				errorMsg, _ := json.Marshal(Message{
 					Author: user,
 					Content: map[string]string{
-						"type": "error",
-						"msg":  "not your piece",
-						"src":  fmt.Sprintf("%d", src_pos),
-						"dst":  fmt.Sprintf("%d", dst_pos),
+						"type":      "error",
+						"msg":       "not your piece",
+						"src":       fmt.Sprintf("%d", src_pos),
+						"src_color": g.Games[room].Board[x1][y1].Color,
+						"src_piece": PIECES[g.Games[room].Board[x1][y1].Piece],
+						"dst":       fmt.Sprintf("%d", dst_pos),
+						"dst_color": g.Games[room].Board[x2][y2].Color,
+						"dst_piece": PIECES[g.Games[room].Board[x2][y2].Piece],
 					},
 				})
 				g.SendErrorBytes(user, room, errorMsg)
@@ -299,10 +312,14 @@ func (g *Server) handleConnection(conn *websocket.Conn, user, room string) {
 				errorMsg, _ := json.Marshal(Message{
 					Author: user,
 					Content: map[string]string{
-						"type": "error",
-						"msg":  "not your turn",
-						"src":  fmt.Sprintf("%d", src_pos),
-						"dst":  fmt.Sprintf("%d", dst_pos),
+						"type":      "error",
+						"msg":       "not your turn",
+						"src":       fmt.Sprintf("%d", src_pos),
+						"src_color": g.Games[room].Board[x1][y1].Color,
+						"src_piece": PIECES[g.Games[room].Board[x1][y1].Piece],
+						"dst":       fmt.Sprintf("%d", dst_pos),
+						"dst_color": g.Games[room].Board[x2][y2].Color,
+						"dst_piece": PIECES[g.Games[room].Board[x2][y2].Piece],
 					},
 				})
 				g.SendErrorBytes(user, room, errorMsg)
@@ -313,10 +330,14 @@ func (g *Server) handleConnection(conn *websocket.Conn, user, room string) {
 				errorMsg, _ := json.Marshal(Message{
 					Author: user,
 					Content: map[string]string{
-						"type": "error",
-						"msg":  err.Error(),
-						"src":  fmt.Sprintf("%d", src_pos),
-						"dst":  fmt.Sprintf("%d", dst_pos),
+						"type":      "error",
+						"msg":       err.Error(),
+						"src":       fmt.Sprintf("%d", src_pos),
+						"src_color": g.Games[room].Board[x1][y1].Color,
+						"src_piece": PIECES[g.Games[room].Board[x1][y1].Piece],
+						"dst":       fmt.Sprintf("%d", dst_pos),
+						"dst_color": g.Games[room].Board[x2][y2].Color,
+						"dst_piece": PIECES[g.Games[room].Board[x2][y2].Piece],
 					},
 				})
 				g.SendErrorBytes(user, room, errorMsg)

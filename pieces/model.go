@@ -2,7 +2,6 @@ package pieces
 
 import (
 	"errors"
-	"fmt"
 	"log"
 
 	"github.com/Qinbeans/chess-htmx/utils"
@@ -54,6 +53,22 @@ var (
 		BISHOP:         "b/b1/Chess_blt45.svg",
 		QUEEN:          "1/15/Chess_qlt45.svg",
 		KING:           "4/42/Chess_klt45.svg",
+	}
+
+	PIECE_NAMES = map[int]string{
+		PAWN + BLACK:   "B_PAWN",
+		ROOK + BLACK:   "B_ROOK",
+		KNIGHT + BLACK: "B_KNIGHT",
+		BISHOP + BLACK: "B_BISHOP",
+		QUEEN + BLACK:  "B_QUEEN",
+		KING + BLACK:   "B_KING",
+		PAWN:           "W_PAWN",
+		ROOK:           "W_ROOK",
+		KNIGHT:         "W_KNIGHT",
+		BISHOP:         "W_BISHOP",
+		QUEEN:          "W_QUEEN",
+		KING:           "W_KING",
+		NONE:           "<NONE>",
 	}
 
 	STARTING_POSITION = [8][8]Square{
@@ -123,80 +138,159 @@ func (g *Game) movePiece(x1, y1, x2, y2 int) error {
 // checkIsLegalMove checks if a move is legal
 func (g *Game) checkIsLegalMove(x1, y1, x2, y2 int) bool {
 	// get piece
-	log.Printf("<%d, %d> -> <%d, %d> ", x1, y1, x2, y2)
+	log.Printf("%s<%d, %d> -> %s<%d, %d> ", PIECE_NAMES[g.Board[x1][y1].Piece], x1, y1, PIECE_NAMES[g.Board[x2][y2].Piece], x2, y2)
 	piece := g.Board[x1][y1].Piece
 	otherPiece := g.Board[x2][y2].Piece
-	switch piece {
+	switch piece &^ BLACK {
 	case PAWN:
-		log.Print("PAWN ")
 		color := piece & BLACK
 		if color == WHITE {
-			fmt.Println("WHITE")
 			if (x1 == 1 && x2 == 3 && y1 == y2) || (x1-x2 == -1 && y1 == y2) || (x1-x2 == -1 && utils.Abs(y1-y2) == 1 && otherPiece != NONE && otherPiece&BLACK == WHITE) {
 				return true
 			}
 		} else {
-			fmt.Println("BLACK")
 			if (x1 == 6 && x2 == 4 && y1 == y2) || (x1-x2 == 1 && y1 == y2) || (x1-x2 == 1 && utils.Abs(y1-y2) == 1 && otherPiece != NONE && otherPiece&BLACK == WHITE) {
 				return true
 			}
 		}
-	default:
-		switch piece &^ BLACK {
-		case ROOK:
-			log.Print("ROOK ")
-			if (x1 == x2 && y1 != y2) || (x1 != x2 && y1 == y2) {
-				return true
-			}
-			// castling check
-			switch piece & BLACK {
-			case WHITE:
-				fmt.Println("WHITE")
-				if (((x1 == 7 && y1 == 4) || (x2 == 7 && y2 == 6)) && g.Board[7][7].Piece == ROOK && g.Board[7][5].Piece == NONE) || ((x1 == 7 && y1 == 4) || (x2 == 7 && y2 == 2)) && g.Board[7][0].Piece == ROOK && g.Board[7][3].Piece == NONE {
-					return true
-				}
-			case BLACK:
-				fmt.Println("BLACK")
-				if (((x1 == 0 && y1 == 4) || (x2 == 0 && y2 == 6)) && g.Board[0][7].Piece == ROOK && g.Board[0][5].Piece == NONE) || ((x1 == 0 && y1 == 4) || (x2 == 0 && y2 == 2)) && g.Board[0][0].Piece == ROOK && g.Board[0][3].Piece == NONE {
-					return true
+	case ROOK:
+		// check if any piece is in the way
+		y_min := utils.Min(y1, y2)
+		y_max := utils.Max(y1, y2)
+		x_min := utils.Min(x1, x2)
+		x_max := utils.Max(x1, x2)
+		if x1 == x2 {
+			for i := y_min + 1; i < y_max; i++ {
+				if g.Board[x1][i].Piece != NONE {
+					log.Printf("Piece at <%d, %d> \n", x1, i)
+					return false
 				}
 			}
-		case KNIGHT:
-			log.Println("KNIGHT")
-			if (utils.Abs(x1-x2) == 2 && utils.Abs(y1-y2) == 1) || (utils.Abs(x1-x2) == 1 && utils.Abs(y1-y2) == 2) {
-				return true
-			}
-		case BISHOP:
-			log.Println("BISHOP")
-			if utils.Abs(x1-x2) == utils.Abs(y1-y2) {
-				return true
-			}
-		case QUEEN:
-			log.Println("QUEEN")
-			if (x1 == x2 && y1 != y2) || (x1 != x2 && y1 == y2) || utils.Abs(x1-x2) == utils.Abs(y1-y2) {
-				return true
-			}
-		case KING:
-			log.Print("KING ")
-			if utils.Abs(x1-x2) <= 1 && utils.Abs(y1-y2) <= 1 {
-				return true
-			}
-			// castling check
-			switch piece & BLACK {
-			case WHITE:
-				fmt.Println("WHITE")
-				if (((x1 == 7 && y1 == 4) || (x2 == 7 && y2 == 6)) && g.Board[7][7].Piece == ROOK && g.Board[7][5].Piece == NONE) || ((x1 == 7 && y1 == 4) || (x2 == 7 && y2 == 2)) && g.Board[7][0].Piece == ROOK && g.Board[7][3].Piece == NONE {
-					return true
-				}
-			case BLACK:
-				fmt.Println("BLACK")
-				if (((x1 == 0 && y1 == 4) || (x2 == 0 && y2 == 6)) && g.Board[0][7].Piece == ROOK && g.Board[0][5].Piece == NONE) || ((x1 == 0 && y1 == 4) || (x2 == 0 && y2 == 2)) && g.Board[0][0].Piece == ROOK && g.Board[0][3].Piece == NONE {
-					return true
+		} else {
+			for i := x_min + 1; i < x_max; i++ {
+				if g.Board[i][y1].Piece != NONE {
+					return false
 				}
 			}
-		default:
-			return false
 		}
+		if (x1 == x2 && y1 != y2) || (x1 != x2 && y1 == y2) {
+			return true
+		}
+		// castling check
+		switch piece & BLACK {
+		case WHITE:
+			if (((x1 == 7 && y1 == 4) || (x2 == 7 && y2 == 6)) && g.Board[7][7].Piece == ROOK && g.Board[7][5].Piece == NONE) || ((x1 == 7 && y1 == 4) || (x2 == 7 && y2 == 2)) && g.Board[7][0].Piece == ROOK && g.Board[7][3].Piece == NONE {
+				return true
+			}
+		case BLACK:
+			if (((x1 == 0 && y1 == 4) || (x2 == 0 && y2 == 6)) && g.Board[0][7].Piece == ROOK && g.Board[0][5].Piece == NONE) || ((x1 == 0 && y1 == 4) || (x2 == 0 && y2 == 2)) && g.Board[0][0].Piece == ROOK && g.Board[0][3].Piece == NONE {
+				return true
+			}
+		}
+	case KNIGHT:
+		if (utils.Abs(x1-x2) == 2 && utils.Abs(y1-y2) == 1) || (utils.Abs(x1-x2) == 1 && utils.Abs(y1-y2) == 2) {
+			return true
+		}
+	case BISHOP:
+		// check if any piece is in the way
+		x_min := utils.Min(x1, x2)
+		x_max := utils.Max(x1, x2)
+		if x1 < x2 && y1 < y2 {
+			for i := 1; i < x_max-x_min; i++ {
+				if g.Board[x1+i][y1+i].Piece != NONE {
+					return false
+				}
+			}
+		} else if x1 < x2 && y1 > y2 {
+			for i := 1; i < x_max-x_min; i++ {
+				if g.Board[x1+i][y1-i].Piece != NONE {
+					return false
+				}
+			}
+		} else if x1 > x2 && y1 < y2 {
+			for i := 1; i < x_max-x_min; i++ {
+				if g.Board[x1-i][y1+i].Piece != NONE {
+					return false
+				}
+			}
+		} else {
+			for i := 1; i < x_max-x_min; i++ {
+				if g.Board[x1-i][y1-i].Piece != NONE {
+					return false
+				}
+			}
+		}
+
+		if utils.Abs(x1-x2) == utils.Abs(y1-y2) {
+			return true
+		}
+	case QUEEN:
+		y_min := utils.Min(y1, y2)
+		y_max := utils.Max(y1, y2)
+		x_min := utils.Min(x1, x2)
+		x_max := utils.Max(x1, x2)
+		if (x1 == x2 && y1 != y2) || (x1 != x2 && y1 == y2) {
+			// check if any piece is in the way
+			if x1 == x2 {
+				for i := y_min + 1; i < y_max; i++ {
+					if g.Board[x1][i].Piece != NONE {
+						return false
+					}
+				}
+			} else {
+				for i := x_min + 1; i < x_max; i++ {
+					if g.Board[i][y1].Piece != NONE {
+						return false
+					}
+				}
+			}
+			return true
+		} else if utils.Abs(x1-x2) == utils.Abs(y1-y2) {
+			// check if any piece is in the way
+			if x1 < x2 && y1 < y2 {
+				for i := 1; i < x_max-x_min; i++ {
+					if g.Board[x1+i][y1+i].Piece != NONE {
+						return false
+					}
+				}
+			} else if x1 < x2 && y1 > y2 {
+				for i := 1; i < x_max-x_min; i++ {
+					if g.Board[x1+i][y1-i].Piece != NONE {
+						return false
+					}
+				}
+			} else if x1 > x2 && y1 < y2 {
+				for i := 1; i < x_max-x_min; i++ {
+					if g.Board[x1-i][y1+i].Piece != NONE {
+						return false
+					}
+				}
+			} else {
+				for i := 1; i < x_max-x_min; i++ {
+					if g.Board[x1-i][y1-i].Piece != NONE {
+						return false
+					}
+				}
+			}
+			return true
+		}
+	case KING:
+		if utils.Abs(x1-x2) <= 1 && utils.Abs(y1-y2) <= 1 {
+			return true
+		}
+		// castling check
+		switch piece & BLACK {
+		case WHITE:
+			if (((x1 == 7 && y1 == 4) || (x2 == 7 && y2 == 6)) && g.Board[7][7].Piece == ROOK && g.Board[7][5].Piece == NONE) || ((x1 == 7 && y1 == 4) || (x2 == 7 && y2 == 2)) && g.Board[7][0].Piece == ROOK && g.Board[7][3].Piece == NONE {
+				return true
+			}
+		case BLACK:
+			if (((x1 == 0 && y1 == 4) || (x2 == 0 && y2 == 6)) && g.Board[0][7].Piece == ROOK && g.Board[0][5].Piece == NONE) || ((x1 == 0 && y1 == 4) || (x2 == 0 && y2 == 2)) && g.Board[0][0].Piece == ROOK && g.Board[0][3].Piece == NONE {
+				return true
+			}
+		}
+	default:
+		return false
 	}
 	return false
 }

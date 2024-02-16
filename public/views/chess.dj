@@ -1,6 +1,22 @@
 {% extends 'base-ws.dj' %}
 {% block content %}
 <div class="grid h-dvh place-content-center">
+    <div class="px-2 py-1 bg-white/25 border border-solid border-white text-green-500">
+        <table>
+            <tr>
+                <td class="">Room: </td>
+                <td class="">{{ room }}</td>
+            </tr>
+            <tr>
+                <td class="">User: </td>
+                <td class="">{{ client }}</td>
+            </tr>
+            <tr>
+                <td class="">Opponent: </td>
+                <td class=""><span id="o-name">NIL</span></td>
+            </tr>
+        </table>
+    </div>
     <form id="board" hx-trigger="end" class='h-[40dvw] w-[40dvw] grid grid-cols-8 grid-rows-8 border border-solid border-white'>
         {% for square in board %}
             {% comment %} Check if square.Piece is an empty string {% endcomment %}
@@ -19,8 +35,23 @@
 </div>
 <script>
     const board = htmx.find('#board');
+    const o_name = htmx.find('#o-name');
 
     const ws = new WebSocket(`{{protoc}}:${window.location.host}/chess/ws?room={{room}}&user={{client}}`);
+
+    ws.onopen = function (event) {
+        console.log('Connection opened');
+    };
+
+    ws.onclose = function (event) {
+        console.log('Connection closed');
+        window.location.href = '/';
+    };
+
+    ws.onerror = function (event) {
+        console.log('Error:', event);
+        window.location.href = '/';
+    };
 
     function swapElements(obj1, obj2) {
         // create marker element and insert it where obj1 is
@@ -37,44 +68,43 @@
         temp.parentNode.removeChild(temp);
     }
 
-    ws.onopen = function (event) {
-        console.log('Connection opened');
-    };
-
-    ws.onclose = function (event) {
-        console.log('Connection closed');
-        window.location.href = '/';
-    };
-
-    ws.onerror = function (event) {
-        console.log('Error:', event);
-        window.location.href = '/';
-    };
-
     ws.onmessage = function (event) {
         const data = JSON.parse(event.data);
+        console.log(data);
         if (data.content.type === 'error') {
             alert(data.content.msg);
-            // Swap back the pieces
-            const trg_pos = data.content.src;
-            const src_pos = data.content.dst;
-            const source = board.querySelector(`input[name="square"][value="${src_pos}"]`).parentNode;
-            const target = board.querySelector(`input[name="square"][value="${trg_pos}"]`).parentNode;
-            const src_end = source.classList.length - 1;
-            const trg_end = target.classList.length - 1;
-            const src_bg = source.classList[src_end];
-            const trg_bg = target.classList[trg_end];
-            source.classList.remove(src_bg);
-            source.classList.add(trg_bg);
-            target.classList.remove(trg_bg);
-            target.classList.add(src_bg);
-            swapElements(source, target);
+            const src = data.content.src;
+            const src_square = board.children[src];
+            const src_piece = data.content.src_piece;
+            const src_color = data.content.src_color;
+
+            if (src_piece) {
+                src_square.classList = `bg-${src_color}`;
+                src_square.innerHTML = `<input type="hidden" name="square" value="${src}"/><img src="https://upload.wikimedia.org/wikipedia/commons/${src_piece}" class="w-[5dvw] h-[5dvw]">`;
+            } else {
+                src_square.classList = `unswappable w-[5dvw] h-[5dvw] bg-${src_color}`;
+                src_square.innerHTML = `<input type="hidden" name="square" value="${src}" disabled/>`;
+            }
+
+            const trg = data.content.dst;
+            const trg_square = board.children[trg];
+            const trg_piece = data.content.dst_piece;
+            const trg_color = data.content.dst_color;
+
+            if (trg_piece) {
+                trg_square.classList = `bg-${trg_color}`;
+                trg_square.innerHTML = `<input type="hidden" name="square" value="${trg}"/><img src="https://upload.wikimedia.org/wikipedia/commons/${trg_piece}" class="w-[5dvw] h-[5dvw]">`;
+            } else {
+                trg_square.classList = `unswappable w-[5dvw] h-[5dvw] bg-${trg_color}`;
+                trg_square.innerHTML = `<input type="hidden" name="square" value="${trg}" disabled/>`;
+            }
+
         } else if (data.content.type === 'move'){
             // Swap the pieces
             const trg_pos = data.content.src;
             const src_pos = data.content.dst;
-            const source = board.querySelector(`input[name="square"][value="${src_pos}"]`).parentNode;
-            const target = board.querySelector(`input[name="square"][value="${trg_pos}"]`).parentNode;
+            const source = board.children[src_pos];
+            const target = board.children[trg_pos];
             const src_end = source.classList.length - 1;
             const trg_end = target.classList.length - 1;
             const src_bg = source.classList[src_end];
@@ -84,6 +114,18 @@
             target.classList.remove(trg_bg);
             target.classList.add(src_bg);
             swapElements(source, target);
+        } else if (data.content.type === 'cmd') {
+            if (data.content.msg === 'connected') {
+                o_name.innerHTML = data.author;
+                ack = JSON.stringify({
+                    'type': 'cmd',
+                    'msg': 'acknowledge',
+                });
+                ws.send(ack);
+            }
+            if (data.content.msg === 'acknowledge') {
+                o_name.innerHTML = data.author;
+            }
         }
     };
 
