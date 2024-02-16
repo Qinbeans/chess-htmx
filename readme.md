@@ -15,8 +15,8 @@ There's really no build process aside from building the classes from TailwindCSS
 That's somewhat a lie as `air` is for development--you can install air [here](https://github.com/cosmtrek/air).
 
 Here are the steps to build and deploy:
-- `pnpm build:release`
-- `node dist` or `dist/chess-htmx`.
+- `docker build . --tag="chess-htmx"`
+- `docker run chess-htmx`
 
 or
 
