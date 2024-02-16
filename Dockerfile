@@ -20,13 +20,17 @@ COPY ./package.json /app/package.json
 COPY ./tailwind.config.js /app/tailwind.config.js
 COPY ./postcss.config.js /app/postcss.config.js
 COPY ./pnpm-lock.yaml /app/pnpm-lock.yaml
+COPY ./webpack.prod.js /app/webpack.prod.js
+COPY ./webpack.common.js /app/webpack.common.js
+COPY ./tsconfig.json /app/tsconfig.json
 # To check for dj classes
 COPY ./public /app/public
 COPY ./styles /app/styles
+COPY ./scripts /app/scripts
 
 RUN npm install -g pnpm
 RUN pnpm install
-RUN pnpm build
+RUN pnpm build:release
 
 FROM alpine:latest
 RUN apk --no-cache add ca-certificates

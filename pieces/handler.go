@@ -19,7 +19,6 @@ const (
 type Server struct {
 	Upgrader websocket.Upgrader
 	Games    map[string]*Game
-	Mode     string
 }
 
 type Message struct {
@@ -30,14 +29,13 @@ type Message struct {
 // *****************************************************************************
 
 // NewServer returns a new server
-func NewServer(mode string) *Server {
+func NewServer() *Server {
 	return &Server{
 		Upgrader: websocket.Upgrader{
 			ReadBufferSize:  READSIZE,
 			WriteBufferSize: WRITESIZE,
 		},
 		Games: make(map[string]*Game),
-		Mode:  mode,
 	}
 }
 
@@ -179,12 +177,7 @@ func (g *Server) Room(c echo.Context) error {
 		log.Print("Room does not exist")
 		return c.Redirect(302, "/")
 	}
-	protoc := "ws"
-	if g.Mode == "release" {
-		protoc = "wss"
-	}
 	return c.Render(200, "chess.dj", pongo2.Context{
-		"protoc": protoc,
 		"room":   room,
 		"client": client,
 		"board":  g.Games[room].toSquareArray(),

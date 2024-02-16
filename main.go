@@ -20,11 +20,11 @@ func room(c echo.Context) error {
 	params := c.QueryParams()
 	room := params.Get("room")
 	if room == "" {
-		return c.Redirect(302, "/menu")
+		return c.Redirect(302, "/")
 	}
 	client := params.Get("user")
 	if client == "" {
-		return c.Redirect(302, "/menu")
+		return c.Redirect(302, "/")
 	}
 	return c.Render(200, "room.dj", pongo2.Context{
 		"room":   room,
@@ -50,7 +50,7 @@ func main() {
 	// gorilla/websocket middleware
 	ws := websockets.NewWSServer()
 	defer ws.Close()
-	chess := pieces.NewServer(mode)
+	chess := pieces.NewServer()
 	// Chat
 	server.Static("/", "build")
 	server.POST("/getroom", ws.GetRoom)

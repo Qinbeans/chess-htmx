@@ -1,4 +1,4 @@
-{% extends "base-ws.dj" %}
+{% extends "base.dj" %}
 {% block content %}
 <div class="flex flex-col h-[95%]">
     <ul class="h-[90%] grid-cols-1 grid-rows-12 place-items-end" id="mhistory">
@@ -10,39 +10,5 @@
         </form>
     </div>
 </div>
-<script>
-    const mhistory = htmx.find('#mhistory');
-    const textbar = htmx.find('#textbar');
-    htmx.on("htmx:wsConnecting", function(evt) {
-        window.location.href = '/';
-    });
-    htmx.on('htmx:wsOpen', function(evt) {
-        console.log("Connected!");
-        alert("Room is {{room}}")
-        mhistory.removeChild(mhistory.lastChild);
-        textbar.hidden = false;
-    });
-    htmx.on('htmx:wsBeforeSend', function(evt) {
-        const li = document.createElement('li');
-        const chat = htmx.find('#chatm');
-    //  Me: <message>
-        li.innerHTML = `<div class="px-2 py-1 text-green-500">[me]: ${chat.value}</div>`;
-        mhistory.append(li);
-        chat.value = '';
-    });
-    htmx.on('htmx:wsClose', function(evt) {
-        window.location.href = '/';
-    });
-    htmx.on('htmx:wsError', function(evt) {
-        window.location.href = '/';
-    });
-    htmx.on('htmx:wsAfterMessage', function(evt) {
-    //    Insert into messages
-        const msg = JSON.parse(evt.detail.message);
-        var li = document.createElement('li');
-    //    <user>: <message>
-        li.innerHTML = `<div class="px-2 py-1 text-green-500">[${msg.author}]: ${msg.content}</div>`;
-        mhistory.append(li);
-    });
-</script>
+<script src="/scripts/room.bundle.js"></script>
 {% endblock %}

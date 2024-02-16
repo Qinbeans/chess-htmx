@@ -3,7 +3,6 @@
     <head>
         <title>{{title}}</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <script src="https://unpkg.com/htmx.org@1.9.10"></script>
         <link rel="stylesheet" href="/styles/app.css">
     </head>
     <body class="bg-black w-dvw h-dvh text-white">
