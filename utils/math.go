@@ -2,7 +2,7 @@ package utils
 
 // abs returns the absolute value of x for integers
 func Abs(x int) int {
-	return x &^ (x >> 31)
+	return (x ^ (x >> 31)) - (x >> 31)
 }
 
 // Min returns the minimum of x and y

@@ -104,6 +104,10 @@ func NewGame(user1 string) *Game {
 	}
 }
 
+func (g *Game) ResetBoard() {
+	g.Board = STARTING_POSITION
+}
+
 // toSquareArray converts the board to a 1D array of SerSquares
 func (g *Game) toSquareArray() []SerSquare {
 	var board []SerSquare
@@ -135,162 +139,272 @@ func (g *Game) movePiece(x1, y1, x2, y2 int) error {
 	return nil
 }
 
+func (g *Game) takePiece(x1, y1, x2, y2 int) {
+	g.Board[x2][y2].Piece = g.Board[x1][y1].Piece
+	g.Board[x1][y1].Piece = NONE
+}
+
+func (g *Game) castle(x1, y1, x2, y2 int) (int, int, int, int, error) {
+	if g.isCheck(x1, y1) || g.isCheck(x2, y2) {
+		return -1, -1, -1, -1, errors.New("can't castle while in check")
+	}
+	// find out which piece is rook and which is king
+	// (x1, y1) or (x2, y2) can be the king or the rook as the action is to drag one of the two pieces to the other
+	var rookX, kingX, kingDY, rookDY int
+
+	if y1 == 0 {
+		// this is probably the rook
+		rookX = x1
+		kingX = x2
+		kingDY = 1
+		rookDY = 2
+	} else if y1 == 7 {
+		// this is probably the rook
+		rookX = x1
+		kingX = x2
+		kingDY = 6
+		rookDY = 5
+	}
+
+	if g.isCheck(kingX, kingDY) {
+		return -1, -1, -1, -1, errors.New("can't castle into check")
+	}
+
+	g.Board[kingX][kingDY].Piece = g.Board[kingX][y1].Piece
+	g.Board[rookX][rookDY].Piece = g.Board[rookX][y1].Piece
+	g.Board[kingX][y1].Piece = NONE
+	g.Board[rookX][y1].Piece = NONE
+	return kingX, kingDY, rookX, rookDY, nil
+}
+
+func (g *Game) whereIsKing(color int) (int, int) {
+	for i, row := range g.Board {
+		for j, square := range row {
+			if square.Piece == KING+color {
+				return i, j
+			}
+		}
+	}
+	return -1, -1
+}
+
+// This function is used after we check legal moves
+func (g *Game) isCastle(x1, y1, x2, y2 int) bool {
+	piece := g.Board[x1][y1].Piece &^ BLACK
+	otherPiece := g.Board[x2][y2].Piece &^ BLACK
+	if piece == KING && otherPiece == ROOK {
+		return true
+	}
+	return false
+}
+
+func (g *Game) checkPawnMovement(x1, y1, x2, y2 int) bool {
+	piece := g.Board[x1][y1].Piece
+	otherPiece := g.Board[x2][y2].Piece
+	color := piece & BLACK
+	if color == WHITE {
+		if (x1 == 1 && x2 == 3 && y1 == y2) || (x1-x2 == -1 && y1 == y2) || (x1-x2 == -1 && utils.Abs(y1-y2) == 1 && otherPiece != NONE && otherPiece&BLACK == WHITE) {
+			if utils.Abs(y1-y2) == 2 {
+				// check if any piece is in the way
+				for i := 1; i < 3; i++ {
+					if g.Board[x1-i][y1].Piece != NONE {
+						return false
+					}
+				}
+			}
+			if otherPiece != NONE && otherPiece&BLACK == WHITE && y1 == y2 && x1-x2 == -1 {
+				return false
+			}
+			return true
+		}
+	} else {
+		if (x1 == 6 && x2 == 4 && y1 == y2) || (x1-x2 == 1 && y1 == y2) || (x1-x2 == 1 && utils.Abs(y1-y2) == 1 && otherPiece != NONE && otherPiece&BLACK == WHITE) {
+			if utils.Abs(y1-y2) == 2 {
+				// check if any piece is in the way
+				for i := 1; i < 3; i++ {
+					if g.Board[x1+i][y1].Piece != NONE {
+						return false
+					}
+				}
+			}
+			if otherPiece != NONE && otherPiece&BLACK == BLACK && y1 == y2 && x1-x2 == 1 {
+				return false
+			}
+			return true
+		}
+	}
+	return false
+}
+
+func (g *Game) checkRookMovement(x1, y1, x2, y2 int) bool {
+	piece := g.Board[x1][y1].Piece
+	// check if any piece is in the way, make sure to exclude the target square
+	y_min := utils.Min(y1, y2)
+	y_max := utils.Max(y1, y2)
+	x_min := utils.Min(x1, x2)
+	x_max := utils.Max(x1, x2)
+	if x1 == x2 {
+		for i := y_min + 1; i < y_max; i++ {
+			if g.Board[x1][i].Piece != NONE {
+				return false
+			}
+		}
+	} else {
+		for i := x_min + 1; i < x_max; i++ {
+			if g.Board[i][y1].Piece != NONE {
+				return false
+			}
+		}
+	}
+	if (x1 == x2 && y1 != y2) || (x1 != x2 && y1 == y2) {
+		return true
+	}
+	// castling check
+	switch piece & BLACK {
+	case WHITE:
+		if (((x1 == 7 && y1 == 4) || (x2 == 7 && y2 == 6)) && g.Board[7][7].Piece == ROOK && g.Board[7][5].Piece == NONE) || ((x1 == 7 && y1 == 4) || (x2 == 7 && y2 == 2)) && g.Board[7][0].Piece == ROOK && g.Board[7][3].Piece == NONE {
+			return true
+		}
+	case BLACK:
+		if (((x1 == 0 && y1 == 4) || (x2 == 0 && y2 == 6)) && g.Board[0][7].Piece == ROOK && g.Board[0][5].Piece == NONE) || ((x1 == 0 && y1 == 4) || (x2 == 0 && y2 == 2)) && g.Board[0][0].Piece == ROOK && g.Board[0][3].Piece == NONE {
+			return true
+		}
+	}
+	return false
+}
+
+func (g *Game) checkKnightMovement(x1, y1, x2, y2 int) bool {
+	x_comp := utils.Abs(x1 - x2)
+	y_comp := utils.Abs(y1 - y2)
+	if y_comp == 2 && x_comp == 1 || x_comp == 2 && y_comp == 1 {
+		return true
+	}
+	return false
+}
+
+func (g *Game) checkBishopMovement(x1, y1, x2, y2 int) bool {
+	// check if any piece is in the way, make sure to exclude the target square
+	x_min := utils.Min(x1, x2)
+	x_max := utils.Max(x1, x2)
+	if x1 < x2 && y1 < y2 {
+		for i := 1; i < x_max-x_min; i++ {
+			if g.Board[x1+i][y1+i].Piece != NONE {
+				return false
+			}
+		}
+	} else if x1 < x2 && y1 > y2 {
+		for i := 1; i < x_max-x_min; i++ {
+			if g.Board[x1+i][y1-i].Piece != NONE {
+				return false
+			}
+		}
+	} else if x1 > x2 && y1 < y2 {
+		for i := 1; i < x_max-x_min; i++ {
+			if g.Board[x1-i][y1+i].Piece != NONE {
+				return false
+			}
+		}
+	} else {
+		for i := 1; i < x_max-x_min; i++ {
+			if g.Board[x1-i][y1-i].Piece != NONE {
+				return false
+			}
+		}
+	}
+	if utils.Abs(x1-x2) == utils.Abs(y1-y2) {
+		return true
+	}
+	return false
+}
+
+func (g *Game) checkKingMovement(x1, y1, x2, y2 int) bool {
+	if utils.Abs(x1-x2) <= 1 && utils.Abs(y1-y2) <= 1 {
+		return true
+	}
+	// castling check
+	switch g.Board[x1][y1].Piece & BLACK {
+	case WHITE:
+		if (((x1 == 7 && y1 == 4) || (x2 == 7 && y2 == 6)) && g.Board[7][7].Piece == ROOK && g.Board[7][5].Piece == NONE) || ((x1 == 7 && y1 == 4) || (x2 == 7 && y2 == 2)) && g.Board[7][0].Piece == ROOK && g.Board[7][3].Piece == NONE {
+			return true
+		}
+	case BLACK:
+		if (((x1 == 0 && y1 == 4) || (x2 == 0 && y2 == 6)) && g.Board[0][7].Piece == ROOK && g.Board[0][5].Piece == NONE) || ((x1 == 0 && y1 == 4) || (x2 == 0 && y2 == 2)) && g.Board[0][0].Piece == ROOK && g.Board[0][3].Piece == NONE {
+			return true
+		}
+	}
+	return false
+}
+
+func (g *Game) isCheck(x1, y1 int) bool {
+	// check if the king is in check
+	kingColor := g.Board[x1][y1].Piece & BLACK
+	for i, row := range g.Board {
+		for j, square := range row {
+			if square.Piece&BLACK != kingColor {
+				if g.checkIsLegalMove(i, j, x1, y1) {
+					return true
+				}
+			}
+		}
+	}
+	return false
+}
+
+func (g *Game) isCheckmate(color int) bool {
+	// check if the king is in check
+	kingX, kingY := g.whereIsKing(color)
+	if !g.isCheck(kingX, kingY) {
+		return false
+	}
+	// check if the king can move
+	for i := -1; i < 2; i++ {
+		for j := -1; j < 2; j++ {
+			if i == 0 && j == 0 {
+				continue
+			}
+			if kingX+i >= 0 && kingX+i < 8 && kingY+j >= 0 && kingY+j < 8 {
+				if g.checkIsLegalMove(kingX, kingY, kingX+i, kingY+j) {
+					return false
+				}
+			}
+		}
+	}
+	// check if any piece can take the attacking piece
+	for i, row := range g.Board {
+		for j, square := range row {
+			if square.Piece&BLACK == color {
+				for k := 0; k < 8; k++ {
+					for l := 0; l < 8; l++ {
+						if g.checkIsLegalMove(i, j, k, l) {
+							return false
+						}
+					}
+				}
+			}
+		}
+	}
+	return true
+}
+
 // checkIsLegalMove checks if a move is legal
 func (g *Game) checkIsLegalMove(x1, y1, x2, y2 int) bool {
 	// get piece
 	log.Printf("%s<%d, %d> -> %s<%d, %d> ", PIECE_NAMES[g.Board[x1][y1].Piece], x1, y1, PIECE_NAMES[g.Board[x2][y2].Piece], x2, y2)
 	piece := g.Board[x1][y1].Piece
-	otherPiece := g.Board[x2][y2].Piece
 	switch piece &^ BLACK {
 	case PAWN:
-		color := piece & BLACK
-		if color == WHITE {
-			if (x1 == 1 && x2 == 3 && y1 == y2) || (x1-x2 == -1 && y1 == y2) || (x1-x2 == -1 && utils.Abs(y1-y2) == 1 && otherPiece != NONE && otherPiece&BLACK == WHITE) {
-				return true
-			}
-		} else {
-			if (x1 == 6 && x2 == 4 && y1 == y2) || (x1-x2 == 1 && y1 == y2) || (x1-x2 == 1 && utils.Abs(y1-y2) == 1 && otherPiece != NONE && otherPiece&BLACK == WHITE) {
-				return true
-			}
-		}
+		return g.checkPawnMovement(x1, y1, x2, y2)
 	case ROOK:
-		// check if any piece is in the way
-		y_min := utils.Min(y1, y2)
-		y_max := utils.Max(y1, y2)
-		x_min := utils.Min(x1, x2)
-		x_max := utils.Max(x1, x2)
-		if x1 == x2 {
-			for i := y_min + 1; i < y_max; i++ {
-				if g.Board[x1][i].Piece != NONE {
-					log.Printf("Piece at <%d, %d> \n", x1, i)
-					return false
-				}
-			}
-		} else {
-			for i := x_min + 1; i < x_max; i++ {
-				if g.Board[i][y1].Piece != NONE {
-					return false
-				}
-			}
-		}
-		if (x1 == x2 && y1 != y2) || (x1 != x2 && y1 == y2) {
-			return true
-		}
-		// castling check
-		switch piece & BLACK {
-		case WHITE:
-			if (((x1 == 7 && y1 == 4) || (x2 == 7 && y2 == 6)) && g.Board[7][7].Piece == ROOK && g.Board[7][5].Piece == NONE) || ((x1 == 7 && y1 == 4) || (x2 == 7 && y2 == 2)) && g.Board[7][0].Piece == ROOK && g.Board[7][3].Piece == NONE {
-				return true
-			}
-		case BLACK:
-			if (((x1 == 0 && y1 == 4) || (x2 == 0 && y2 == 6)) && g.Board[0][7].Piece == ROOK && g.Board[0][5].Piece == NONE) || ((x1 == 0 && y1 == 4) || (x2 == 0 && y2 == 2)) && g.Board[0][0].Piece == ROOK && g.Board[0][3].Piece == NONE {
-				return true
-			}
-		}
+		return g.checkRookMovement(x1, y1, x2, y2)
 	case KNIGHT:
-		if (utils.Abs(x1-x2) == 2 && utils.Abs(y1-y2) == 1) || (utils.Abs(x1-x2) == 1 && utils.Abs(y1-y2) == 2) {
-			return true
-		}
+		return g.checkKnightMovement(x1, y1, x2, y2)
 	case BISHOP:
-		// check if any piece is in the way
-		x_min := utils.Min(x1, x2)
-		x_max := utils.Max(x1, x2)
-		if x1 < x2 && y1 < y2 {
-			for i := 1; i < x_max-x_min; i++ {
-				if g.Board[x1+i][y1+i].Piece != NONE {
-					return false
-				}
-			}
-		} else if x1 < x2 && y1 > y2 {
-			for i := 1; i < x_max-x_min; i++ {
-				if g.Board[x1+i][y1-i].Piece != NONE {
-					return false
-				}
-			}
-		} else if x1 > x2 && y1 < y2 {
-			for i := 1; i < x_max-x_min; i++ {
-				if g.Board[x1-i][y1+i].Piece != NONE {
-					return false
-				}
-			}
-		} else {
-			for i := 1; i < x_max-x_min; i++ {
-				if g.Board[x1-i][y1-i].Piece != NONE {
-					return false
-				}
-			}
-		}
-
-		if utils.Abs(x1-x2) == utils.Abs(y1-y2) {
-			return true
-		}
+		return g.checkBishopMovement(x1, y1, x2, y2)
 	case QUEEN:
-		y_min := utils.Min(y1, y2)
-		y_max := utils.Max(y1, y2)
-		x_min := utils.Min(x1, x2)
-		x_max := utils.Max(x1, x2)
-		if (x1 == x2 && y1 != y2) || (x1 != x2 && y1 == y2) {
-			// check if any piece is in the way
-			if x1 == x2 {
-				for i := y_min + 1; i < y_max; i++ {
-					if g.Board[x1][i].Piece != NONE {
-						return false
-					}
-				}
-			} else {
-				for i := x_min + 1; i < x_max; i++ {
-					if g.Board[i][y1].Piece != NONE {
-						return false
-					}
-				}
-			}
-			return true
-		} else if utils.Abs(x1-x2) == utils.Abs(y1-y2) {
-			// check if any piece is in the way
-			if x1 < x2 && y1 < y2 {
-				for i := 1; i < x_max-x_min; i++ {
-					if g.Board[x1+i][y1+i].Piece != NONE {
-						return false
-					}
-				}
-			} else if x1 < x2 && y1 > y2 {
-				for i := 1; i < x_max-x_min; i++ {
-					if g.Board[x1+i][y1-i].Piece != NONE {
-						return false
-					}
-				}
-			} else if x1 > x2 && y1 < y2 {
-				for i := 1; i < x_max-x_min; i++ {
-					if g.Board[x1-i][y1+i].Piece != NONE {
-						return false
-					}
-				}
-			} else {
-				for i := 1; i < x_max-x_min; i++ {
-					if g.Board[x1-i][y1-i].Piece != NONE {
-						return false
-					}
-				}
-			}
-			return true
-		}
+		return g.checkRookMovement(x1, y1, x2, y2) || g.checkBishopMovement(x1, y1, x2, y2)
 	case KING:
-		if utils.Abs(x1-x2) <= 1 && utils.Abs(y1-y2) <= 1 {
-			return true
-		}
-		// castling check
-		switch piece & BLACK {
-		case WHITE:
-			if (((x1 == 7 && y1 == 4) || (x2 == 7 && y2 == 6)) && g.Board[7][7].Piece == ROOK && g.Board[7][5].Piece == NONE) || ((x1 == 7 && y1 == 4) || (x2 == 7 && y2 == 2)) && g.Board[7][0].Piece == ROOK && g.Board[7][3].Piece == NONE {
-				return true
-			}
-		case BLACK:
-			if (((x1 == 0 && y1 == 4) || (x2 == 0 && y2 == 6)) && g.Board[0][7].Piece == ROOK && g.Board[0][5].Piece == NONE) || ((x1 == 0 && y1 == 4) || (x2 == 0 && y2 == 2)) && g.Board[0][0].Piece == ROOK && g.Board[0][3].Piece == NONE {
-				return true
-			}
-		}
+		return g.checkKingMovement(x1, y1, x2, y2)
 	default:
 		return false
 	}
-	return false
 }

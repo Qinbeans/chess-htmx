@@ -14,6 +14,7 @@ import (
 const (
 	READSIZE  = 1024
 	WRITESIZE = 1024
+	ALL       = ""
 )
 
 type Server struct {
@@ -81,7 +82,7 @@ func (g *Server) GracefulDisconnect(id uuid.UUID, room string) error {
 	return err
 }
 
-// Broadcast sends a message to all clients in a room
+// Broadcast sends a message to all clients in a room; empty user means broadcast to all
 func (g *Server) Broadcast(user, room string, message []byte) {
 	game := g.Games[room]
 	for id, conn := range game.Clients {
@@ -121,6 +122,52 @@ func (g *Server) SendError(user, room string, err error) {
 
 func (g *Server) SendErrorBytes(user, room string, err []byte) {
 	g.Games[room].Clients[user].WriteMessage(websocket.TextMessage, err)
+}
+
+// SendMoveError sends a move error message to a client
+func (g *Server) SendMoveError(user, room string, err error, src, dst int) {
+	x1, y1 := src/8, src%8
+	x2, y2 := dst/8, dst%8
+	errorMsg, _ := json.Marshal(Message{
+		Author: user,
+		Content: map[string]string{
+			"type":      "error",
+			"msg":       err.Error(),
+			"src":       fmt.Sprintf("%d", src),
+			"src_color": g.Games[room].Board[x1][y1].Color,
+			"src_piece": PIECES[g.Games[room].Board[x1][y1].Piece],
+			"dst":       fmt.Sprintf("%d", dst),
+			"dst_color": g.Games[room].Board[x2][y2].Color,
+			"dst_piece": PIECES[g.Games[room].Board[x2][y2].Piece],
+		},
+	})
+	g.SendErrorBytes(user, room, errorMsg)
+}
+
+func (g *Server) SendTakeAck(user, room string, src, dst int) {
+	moveMsg, _ := json.Marshal(Message{
+		Author: user,
+		Content: map[string]string{
+			"type": "take-ack",
+			"src":  fmt.Sprintf("%d", src),
+			"dst":  fmt.Sprintf("%d", dst),
+		},
+	})
+	g.Games[room].Clients[user].WriteMessage(websocket.TextMessage, moveMsg)
+}
+
+func (g *Server) SendCastle(user, room string, k_src, r_src, k_dst, r_dst int) {
+	moveMsg, _ := json.Marshal(Message{
+		Author: user,
+		Content: map[string]string{
+			"type":  "castle",
+			"k_src": fmt.Sprintf("%d", k_src),
+			"r_src": fmt.Sprintf("%d", r_src),
+			"k_dst": fmt.Sprintf("%d", k_dst),
+			"r_dst": fmt.Sprintf("%d", r_dst),
+		},
+	})
+	g.Broadcast(ALL, room, moveMsg)
 }
 
 // *****************************************************************************
@@ -276,6 +323,39 @@ func (g *Server) handleConnection(conn *websocket.Conn, user, room string) {
 					},
 				})
 				g.Broadcast(user, room, ackMsg)
+			case "reset-req":
+				log.Println("User requested reset")
+				if len(g.Games[room].Clients) < 2 {
+					resetMsg, _ := json.Marshal(Message{
+						Author: user,
+						Content: map[string]string{
+							"type": "error",
+							"msg":  "reset denied, not enough players",
+						},
+					})
+					g.SendErrorBytes(user, room, resetMsg)
+				}
+				resetMsg, _ := json.Marshal(Message{
+					Author: user,
+					Content: map[string]string{
+						"type": "cmd",
+						"msg":  "reset-req",
+					},
+				})
+				g.Broadcast(user, room, resetMsg)
+			case "reset-ack":
+				log.Println("User acknowledged reset")
+				g.Games[room].ResetBoard()
+				board, _ := json.Marshal(g.Games[room].toSquareArray())
+				resetMsg, _ := json.Marshal(Message{
+					Author: user,
+					Content: map[string]string{
+						"type":  "cmd",
+						"msg":   "reset-ack",
+						"board": string(board),
+					},
+				})
+				g.Broadcast(user, room, resetMsg)
 			default:
 				log.Println(message["msg"])
 			}
@@ -286,65 +366,79 @@ func (g *Server) handleConnection(conn *websocket.Conn, user, room string) {
 			x2, y2 := dst_pos/8, dst_pos%8
 			// Check if src is client's color
 			if g.Games[room].Board[x1][y1].Piece&BLACK != g.Games[room].ClientColors[user] {
-				errorMsg, _ := json.Marshal(Message{
-					Author: user,
-					Content: map[string]string{
-						"type":      "error",
-						"msg":       "not your piece",
-						"src":       fmt.Sprintf("%d", src_pos),
-						"src_color": g.Games[room].Board[x1][y1].Color,
-						"src_piece": PIECES[g.Games[room].Board[x1][y1].Piece],
-						"dst":       fmt.Sprintf("%d", dst_pos),
-						"dst_color": g.Games[room].Board[x2][y2].Color,
-						"dst_piece": PIECES[g.Games[room].Board[x2][y2].Piece],
-					},
-				})
-				g.SendErrorBytes(user, room, errorMsg)
+				g.SendMoveError(user, room, fmt.Errorf("not your piece"), src_pos, dst_pos)
 				continue
 			} else if g.Games[room].Turn != g.Games[room].ClientColors[user] {
-				errorMsg, _ := json.Marshal(Message{
-					Author: user,
-					Content: map[string]string{
-						"type":      "error",
-						"msg":       "not your turn",
-						"src":       fmt.Sprintf("%d", src_pos),
-						"src_color": g.Games[room].Board[x1][y1].Color,
-						"src_piece": PIECES[g.Games[room].Board[x1][y1].Piece],
-						"dst":       fmt.Sprintf("%d", dst_pos),
-						"dst_color": g.Games[room].Board[x2][y2].Color,
-						"dst_piece": PIECES[g.Games[room].Board[x2][y2].Piece],
-					},
-				})
-				g.SendErrorBytes(user, room, errorMsg)
+				g.SendMoveError(user, room, fmt.Errorf("not your turn"), src_pos, dst_pos)
 				continue
 			}
 			err = g.Games[room].movePiece(x1, y1, x2, y2)
 			if err != nil {
-				errorMsg, _ := json.Marshal(Message{
-					Author: user,
-					Content: map[string]string{
-						"type":      "error",
-						"msg":       err.Error(),
-						"src":       fmt.Sprintf("%d", src_pos),
-						"src_color": g.Games[room].Board[x1][y1].Color,
-						"src_piece": PIECES[g.Games[room].Board[x1][y1].Piece],
-						"dst":       fmt.Sprintf("%d", dst_pos),
-						"dst_color": g.Games[room].Board[x2][y2].Color,
-						"dst_piece": PIECES[g.Games[room].Board[x2][y2].Piece],
-					},
-				})
-				g.SendErrorBytes(user, room, errorMsg)
+				g.SendMoveError(user, room, err, src_pos, dst_pos)
 				continue
+			}
+			if g.Games[room].Board[x1][y1].Piece == KING && g.Games[room].isCheck(x2, y2) {
+				g.SendMoveError(user, room, fmt.Errorf("cannot move into check"), src_pos, dst_pos)
+				continue
+			}
+			if g.Games[room].Board[x1][y1].Piece != KING {
+				// check if king is in check
+				src_color := g.Games[room].Board[x1][y1].Piece &^ BLACK
+				kingX, kingY := g.Games[room].whereIsKing(src_color)
+				if g.Games[room].isCheck(kingX, kingY) {
+					g.SendMoveError(user, room, fmt.Errorf("king is in check"), src_pos, dst_pos)
+					continue
+				}
+			}
+			if g.Games[room].isCastle(x1, y1, x2, y2) {
+				var oKingX, oKingY, oRookX, oRookY int
+				if g.Games[room].Board[x1][y1].Piece != KING {
+					oKingX, oKingY = x2, y2
+					oRookX, oRookY = x1, y1
+				} else {
+					oKingX, oKingY = x1, y1
+					oRookX, oRookY = x2, y2
+				}
+				kingX, kingY, rookX, rookY, err := g.Games[room].castle(x1, y1, x2, y2)
+				if err != nil {
+					g.SendMoveError(user, room, err, src_pos, dst_pos)
+					continue
+				}
+				o_king_pos := oKingX*8 + oKingY
+				o_rook_pos := oRookX*8 + oRookY
+				king_pos := kingX*8 + kingY
+				rook_pos := rookX*8 + rookY
+				g.SendCastle(user, room, o_king_pos, o_rook_pos, king_pos, rook_pos)
+			}
+			taken := false
+			// check if piece exists at dst
+			if g.Games[room].Board[x2][y2].Piece != NONE {
+				g.Games[room].takePiece(x1, y1, x2, y2)
+				taken = true
 			}
 			moveMsg, _ := json.Marshal(Message{
 				Author: user,
 				Content: map[string]string{
-					"type": "move",
-					"src":  fmt.Sprintf("%d", src_pos),
-					"dst":  fmt.Sprintf("%d", dst_pos),
+					"type":  "move",
+					"src":   fmt.Sprintf("%d", src_pos),
+					"dst":   fmt.Sprintf("%d", dst_pos),
+					"taken": fmt.Sprintf("%t", taken),
 				},
 			})
+			// check if opponent is in checkmate
+			color := g.Games[room].Board[x2][y2].Piece &^ BLACK
+			opp_color := color ^ BLACK
 			g.Broadcast(user, room, moveMsg)
+			if g.Games[room].isCheckmate(opp_color) {
+				moveMsg, _ = json.Marshal(Message{
+					Author: user,
+					Content: map[string]string{
+						"type":  "checkmate",
+						"color": g.Games[room].Board[x2][y2].Color,
+					},
+				})
+				g.Broadcast(ALL, room, moveMsg)
+			}
 			switch g.Games[room].Turn {
 			case WHITE:
 				g.Games[room].Turn = BLACK
