@@ -13,7 +13,10 @@ import (
 )
 
 func menu(c echo.Context) error {
-	return c.Render(200, "menu.dj", nil)
+	return c.Render(200, "menu.dj", pongo2.Context{
+		"title":       "Menu",
+		"description": "Choose a what you want to do at Chess-HTMX",
+	})
 }
 
 func room(c echo.Context) error {
@@ -27,8 +30,10 @@ func room(c echo.Context) error {
 		return c.Redirect(302, "/")
 	}
 	return c.Render(200, "room.dj", pongo2.Context{
-		"room":   room,
-		"client": client,
+		"title":       "Chat Room",
+		"description": "Chat with a friend",
+		"room":        room,
+		"client":      client,
 	})
 }
 

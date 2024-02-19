@@ -225,9 +225,11 @@ func (g *Server) Room(c echo.Context) error {
 		return c.Redirect(302, "/")
 	}
 	return c.Render(200, "chess.dj", pongo2.Context{
-		"room":   room,
-		"client": client,
-		"board":  g.Games[room].toSquareArray(),
+		"title":       "Let's play chess",
+		"description": "Play chess with a friend",
+		"room":        room,
+		"client":      client,
+		"board":       g.Games[room].toSquareArray(),
 	})
 }
 
