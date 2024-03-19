@@ -1,5 +1,9 @@
 [![Build Status](https://github.com/Qinbeans/chess-htmx/actions/workflows/docker-image.yml/badge.svg)](https://github.com/Qinbeans/chess-htmx/actions/workflows/docker-image.yml)
 
+# Revision 1
+
+What I realized after reading further into the documentation was that HTMX was less a framework and more a component for a backend framework. My problems with HTMX make so much more sense now as I treated HTMX like frontend frameworks commonly used. I also chose to switch templating engines, which I did because Pongo2 hadn't been updated recently.
+
 # Chess In Go and HTMX
 
 Can be found [here](https://chess-htmx.onrender.com/)
@@ -29,39 +33,9 @@ You can find the endpoints in `routes.json`.
 ```json
 [
   {
-    "method": "POST",
-    "path": "/getroom",
-    "name": "github.com/Qinbeans/chess-htmx/websockets.(*WSServer).GetRoom-fm"
-  },
-  {
-    "method": "GET",
-    "path": "/room/ws",
-    "name": "github.com/Qinbeans/chess-htmx/websockets.(*WSServer).WSHandler-fm"
-  },
-  {
-    "method": "POST",
-    "path": "/chess/new",
-    "name": "github.com/Qinbeans/chess-htmx/pieces.(*Server).NewGame-fm"
-  },
-  {
-    "method": "POST",
-    "path": "/chess/join",
-    "name": "github.com/Qinbeans/chess-htmx/pieces.(*Server).ConnectToRoom-fm"
-  },
-  {
-    "method": "GET",
-    "path": "/chess",
-    "name": "github.com/Qinbeans/chess-htmx/pieces.(*Server).Room-fm"
-  },
-  {
     "method": "GET",
     "path": "/*",
     "name": "github.com/labstack/echo/v4.StaticDirectoryHandler.func1"
-  },
-  {
-    "method": "POST",
-    "path": "/joinroom",
-    "name": "github.com/Qinbeans/chess-htmx/websockets.(*WSServer).ConnectToRoom-fm"
   },
   {
     "method": "GET",
@@ -70,13 +44,13 @@ You can find the endpoints in `routes.json`.
   },
   {
     "method": "GET",
-    "path": "/room",
-    "name": "main.room"
+    "path": "/chat_menu",
+    "name": "main.chat_menu"
   },
   {
     "method": "GET",
-    "path": "/chess/ws",
-    "name": "github.com/Qinbeans/chess-htmx/pieces.(*Server).WSHandler-fm"
+    "path": "/chess_menu",
+    "name": "main.chess_menu"
   }
 ]
 ```

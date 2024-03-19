@@ -1,0 +1,22 @@
+{{ define "content" }}
+<div class="grid h-dvh place-content-center">
+    <div class="px-2 py-1 bg-white/25 border border-solid border-white text-green-500">
+        <table>
+            <tr>
+                <td>Room: </td>
+                <td id="room-id">{{ .room }}</td>
+            </tr>
+            <tr>
+                <td>User: </td>
+                <td id="client-id">{{ .client }}</td>
+            </tr>
+            <tr>
+                <td>Opponent: </td>
+                <td id="o-name">NIL</td>
+            </tr>
+        </table>
+    </div>
+    <form id="board" hx-trigger="end" class='h-[40dvw] w-[40dvw] grid grid-cols-8 grid-rows-8 border border-solid border-white'>
+    </form>
+</div>
+{{ end }}

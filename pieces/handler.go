@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/flosch/pongo2/v6"
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
@@ -224,7 +223,7 @@ func (g *Server) Room(c echo.Context) error {
 		log.Print("Room does not exist")
 		return c.Redirect(302, "/")
 	}
-	return c.Render(200, "chess.dj", pongo2.Context{
+	return c.Render(200, "room", map[string]any{
 		"title":       "Let's play chess",
 		"description": "Play chess with a friend",
 		"room":        room,

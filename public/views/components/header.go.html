@@ -1,0 +1,20 @@
+{{define "header"}}
+<header class="grid grid-cols-3 grid-rows-2">
+    <section class="col-start-2 row-start-1 text-white italic text-center text-xl font-bold">
+        {{ .title }}
+    </section>
+    <section class="col-start-2 row-start-2">
+        <ul class="flex flex-row gap-3 text-xl justify-center">
+            {{range .items}}
+            <li>
+                {{if .selected}}
+                    <span class="text-gray-400">{{.label}}</span>
+                {{else}}
+                    <a href="{{.url}}" hx-boost="true" hx-target="#main-content" class="text-blue-400 hover:text-purple-600 transition duration-300 ease-in-out">{{.label}}</a>
+                {{end}}
+            </li>
+            {{end}}
+        </ul>
+    </section>
+</header>
+{{end}}

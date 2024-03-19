@@ -1,0 +1,29 @@
+{
+    "root": "public/views",
+    "page_definition": [
+        "page",
+        "components/header"
+    ],
+    "component_definition": [
+        "component",
+        "components/header"
+    ],
+    "recipes": [
+        {
+            "name": "home",
+            "component": "components/pages/home"
+        },
+        {
+            "name": "chat",
+            "component": "components/pages/chat"
+        },
+        {
+            "name": "room",
+            "component": "components/pages/room"
+        },
+        {
+            "name": "chess",
+            "component": "components/pages/chess"
+        }
+    ]
+}

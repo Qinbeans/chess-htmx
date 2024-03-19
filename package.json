@@ -9,10 +9,9 @@
 	},
 	"license": "MIT",
 	"scripts": {
-		"build": "pnpm build:styles && pnpm build:scripts",
-		"build:release": "pnpm build:styles && webpack -o build/scripts --config webpack.prod.js",
-		"build:styles": "postcss styles/app.css -o build/styles/app.css",
-		"build:scripts": "webpack -o build/scripts --config webpack.config.js"
+		"build": "pnpm build:styles",
+		"build:release": "pnpm build:styles",
+		"build:styles": "postcss styles/app.css -o build/styles/app.css"
 	},
 	"dependencies": {
 		"autoprefixer": "^10.4.17",
