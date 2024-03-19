@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/Qinbeans/chess-htmx/pieces"
+	"github.com/Qinbeans/chess-htmx/static"
 	"github.com/Qinbeans/chess-htmx/template"
 	"github.com/Qinbeans/chess-htmx/websockets"
 	"github.com/flosch/pongo2/v6"
@@ -50,6 +51,7 @@ func main() {
 
 	// init Echo
 	server := echo.New()
+	server.Use(static.Middleware())
 	// set renderer to our template
 	server.Renderer = template.New()
 	// gorilla/websocket middleware
